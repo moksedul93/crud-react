@@ -1,0 +1,758 @@
+import React, { useEffect, useState } from "react";
+import ResponsiveTable from "../../../components/Shared/Table/ResponsiveTable";
+import DatePicker from "react-datepicker";
+import { useDeleteUserMessageMutation, useGetMessagesDownlineQuery, useSendMessageMutation, useUpdateUserMessageMutation } from "../../../api/controller/controller";
+import Cookies from "js-cookie";
+import { toast } from "react-toastify";
+import { CiLock } from "react-icons/ci";
+import { MdDeleteOutline } from "react-icons/md";
+import { FaRegEyeSlash } from "react-icons/fa";
+import { CiUnlock } from "react-icons/ci";
+import ModalMessage from "./ModalMessage";
+import { FaEye } from "react-icons/fa";
+import { FaEdit } from "react-icons/fa";
+
+
+const MessageSetting = ({ closeModal, isModalOpen }) => {
+  const [fromDate, setFromDate] = useState(new Date());
+  const [action, setAction] = useState("");
+  const [valueChange, setValueChange] = useState("");
+  const [filter, setFilter] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [islock, setIslock] = useState(false);
+  const [isMasterModalOpen, setIsMasterModalOpen] = useState(false);
+  const [sendMessage, { error, isSuccess }] = useSendMessageMutation(); // Correct usage
+  const [isShowoing, setIsshowing] = useState(false);
+  const [isdelete, setIsDelete] = useState(false)
+  const [viewModal, setViewModal] = useState(false)
+  const [msgId, setMsgId] = useState("")
+  const [showMessage, setShowMessage] = useState(false)
+  const [hideMessage, setHideMessage] = useState(false)
+  const [userMessage, setUserMessage] = useState("")
+  const[userTitle, setUserTitle] = useState('');
+  const [isEdit, seIsEdit] = useState(false)
+  const [updatedMessage, setUpdatedMessage]=useState('')
+  const [updatedTitle, setUpdatedTitle]=useState('')
+  const userId = Cookies.get('userId')
+  const isShowings = '';
+
+  const handleDownlineOptions = (e) => {
+    const valueChanger = e.target.value;
+    setValueChange(valueChanger);
+  }
+console.log(updatedMessage, 'dada')
+  const actionMessage = () => {
+    setFilter(valueChange);
+  };
+  const { data: useMessage, refetch } = useGetMessagesDownlineQuery({ userId, filter, isShowings });
+  const msgList = useMessage?.messages;
+  const messageId = msgList?.map(item => item._id)
+  console.log(messageId);
+
+
+  const [updateUserMessage] = useUpdateUserMessageMutation();
+  const [deleteUserMessage] = useDeleteUserMessageMutation();
+
+  const handleDeleteSubmit = async () => {
+    try {
+      const mid = msgId;
+      const response = await deleteUserMessage(mid);
+      if (response.error) {
+        // Handle error response
+        toast.error("Message is locked, can't be deleted");
+      } else {
+        setIsMasterModalOpen(false);
+        toast.success("Message deleted");
+      }
+    } catch (error) {
+      // Handle any unexpected errors
+      console.error("An error occurred:", error);
+      toast.error("An unexpected error occurred");
+    }
+  };
+
+  // Assuming you have a toaster component named Toaster
+
+  const handleInplayClick = async () => {
+    const mid = msgId;
+    try {
+      const response = await updateUserMessage({
+        id: mid,
+        updates: { isLocked: true } // Update isLocked property
+      });
+      setIsMasterModalOpen(false);
+      // Show success toaster message
+      toast.success("Message locked successfully ");
+    } catch (error) {
+      // Show error toaster message
+      toast.error("Failed to locked successfully");
+
+    }
+  };
+const handleMessages = async () => {
+  const mid = msgId;
+  try {
+    const response = await updateUserMessage({
+      id: mid,
+      updates: { 
+        message:updatedMessage,
+        title:updatedTitle
+       } // Update isLocked property
+    });
+    setIsMasterModalOpen(false);
+    // Show success toaster message
+    toast.success("Message updated successfully");
+  } catch (error) {
+    // Show error toaster message
+    toast.error("Failed to update message");
+
+  }
+};
+
+  const handleModal = (id) => {
+    console.log(id, 'delete')
+    setMsgId(id)
+    setIsDelete(true)
+    setHideMessage(false)
+    setIsshowing(false)
+    setViewModal(false)
+    setShowMessage(false)
+    seIsEdit(false)
+    setIsMasterModalOpen(true)
+  }
+
+  const handleModalDelete = (id) => {
+    setMsgId(id)
+    setIsshowing(true)
+    setHideMessage(false)
+    setIsDelete(false)
+    setViewModal(false)
+    setShowMessage(false)
+    seIsEdit(false)
+    setIsMasterModalOpen(true)
+
+  }
+  const handleModalView = (id) => {
+    setMsgId(id)
+    setViewModal(true)
+    setHideMessage(false)
+    setIsDelete(false)
+    setIsshowing(false)
+    setShowMessage(false)
+    seIsEdit(false)
+    setIsMasterModalOpen(true)
+
+  }
+
+  const handleModalshow = (id) => {
+    setMsgId(id)
+    setShowMessage(true)
+    setHideMessage(false)
+    setViewModal(false)
+    setIsDelete(false)
+    setIsshowing(false)
+    seIsEdit(false)
+    setIsMasterModalOpen(true)
+
+  }
+
+
+  const handleModalhide = (id) => {
+    setMsgId(id)
+    setHideMessage(true)
+    setShowMessage(false)
+    setViewModal(false)
+    setIsDelete(false)
+    setIsshowing(false)
+    seIsEdit(false)
+    setIsMasterModalOpen(true)
+
+  }
+  const handleModalEdit = (id, message, title) => {
+    setUserMessage(message);
+    setUserTitle(title)
+    setMsgId(id)
+    seIsEdit(true)
+    setHideMessage(false)
+    setShowMessage(false)
+    setViewModal(false)
+    setIsDelete(false)
+    setIsshowing(false)
+    setIsMasterModalOpen(true)
+
+  }
+
+  const handleViewSubmit = async () => {
+    const mid = msgId;
+    try {
+      // Assuming you want to update the first message in the list
+      if (msgId && msgId.length > 0) {
+        await updateUserMessage({
+          id: msgId,
+          updates: { isLocked: false } // Update isLocked property
+        });
+        toast.success("Message unlocked");
+        setIsMasterModalOpen(false);
+      } else {
+        toast.error("Failed to unlocked message");
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleShowSubmit = async () => {
+    const mid = msgId;
+    try {
+      // Assuming you want to update the first message in the list
+      if (msgId && msgId.length > 0) {
+        await updateUserMessage({
+          id: msgId,
+          updates: { isShowing: true } // Update isLocked property
+        });
+        toast.success("Message showing successfully");
+        setIsMasterModalOpen(false);
+      } else {
+        toast.error("Failed to hide message");
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleHideSubmit = async () => {
+    const mid = msgId;
+    try {
+      // Assuming you want to update the first message in the list
+      if (mid && mid.length > 0) {
+        await updateUserMessage({
+          id: mid,
+          updates: { isShowing: false }
+        });
+        toast.success("Message Hide successfully");
+        setIsMasterModalOpen(false);
+      } else {
+        toast.error("Failed to showing message");
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+  const adjustedMsgList = msgList?.map((item, index) => {
+    const date = new Date(item.date); // Convert the date string to a Date object
+    // const toUser = item.toUser;
+    return {
+      ...item,
+      sl: index + 1, // Adjust the index to start from 1
+      date: date.toLocaleString(),
+      toUserEdit: <span className="capitalize ">{item.toUser}</span>,
+      // is_lock: <span onClick={(id) => handleModalDelete(item._id)}><CiLock className="text-[20px] cursor-pointer" /></span>,
+      is_lock: <span><>
+        {
+          item.isLocked === true ? (
+            // If is_lock is true, show lock message
+            <span className="text-[20px] cursor-pointer gap-2 font-medium hover:text-blue-700 border px-2 py-1 rounded inline-block" onClick={(id) => handleModalView(item._id)}>
+              <CiLock className="text-[20px] cursor-pointer " title="Unlock Message"/>
+            </span>
+          ) : (
+            // If is_lock is false, show unlock message
+            <span className="text-[20px] cursor-pointer gap-2 font-medium hover:text-blue-700 border px-2 py-1 rounded inline-block" onClick={(id) => handleModalDelete(item._id)}>
+              <CiUnlock className="text-[20px] cursor-pointer" title="Lock Message" />
+            </span>
+          )
+        }
+      </></span>,
+      action: <span className="flex gap-2"><span className="flex gap-2 font-medium hover:text-[red] border px-2 py-1 rounded"><MdDeleteOutline onClick={(id) => handleModal(item._id)} className="text-[20px] cursor-pointer" title="Delete Message"/></span>
+
+        <>
+          {/* {console.log(item.isShowing, 'ddd')} */}
+          {
+            item.isShowing === true ? (
+              // If is_lock is true, show lock message
+              <span className="text-[20px] cursor-pointer gap-2 font-medium hover:text-blue-700 border px-2 py-1 rounded inline-block" onClick={(id) => handleModalhide(item._id)}>
+                <FaEye className="text-[20px] cursor-pointer" title="Hide Message" />
+              </span>
+            ) : (
+
+              <span className="text-[20px] cursor-pointer gap-2 font-medium hover:text-blue-700 border px-2 py-1 rounded inline-block" onClick={(id) => handleModalshow(item._id)}>
+                <FaRegEyeSlash className="text-[20px] cursor-pointer" title="Show Message"/>
+              </span>
+            )
+          }
+        </>
+        <span className="text-[20px] cursor-pointer gap-2 font-medium hover:text-blue-700 border px-2 py-1 rounded inline-block" onClick={(id) => handleModalEdit(item._id, item.message, item.title)}>
+                <FaEdit  className="text-[20px] cursor-pointer" title="Edit Message"/>
+              </span>
+      </span>
+    };
+  });
+
+  const columnData = [
+    { header: "SNo", accessor: "sl" },
+    { header: "Msg Type", accessor: "toUserEdit" },
+    { header: "Msg Title", accessor: "title" },
+    { header: "Message", accessor: "message" },
+    { header: "Msg Date", accessor: "date" },
+    { header: "IsLock", accessor: "is_lock" },
+    { header: "Action", accessor: "action" },
+  ];
+
+  const handleFromDateChange = (date) => {
+    setFromDate(date);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const fromUserId = Cookies.get("userId");
+    const form = e.target;
+    const toUser = action;
+    const title = form.title.value;
+    const date = fromDate.toISOString();
+    const message = form.message.value;
+    const messageData = { fromUserId, toUser, title, date, message }
+
+    if (!title || !message || !toUser) {
+      toast.error('Message not sent')
+      return; // Prevent further execution
+    }
+
+    // Now you can use these values to make your API request
+    try {
+      const response = await sendMessage(messageData);
+      console.log("Response:", toUser);
+      form.title.value = "";
+      form.message.value = "";
+      // form.toUser = " ";
+      form.type.value = "selectAction";
+      setAction(""); // Clear the action state value as well
+      setFromDate(new Date()); // Reset the fromDate state to current date
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+  useEffect(() => {
+    if (isSuccess) {
+      toast.success('Message sent successfully')
+    }
+  }, [isSuccess]);
+
+  return (
+    <div className="px-2 lg:px-8 py-3">
+      <div>
+        <div className="bg-blue-50 p-4 rounded border-b-2 border-gray-400 my-8">
+          <h1 className="md:text-2xl  font-semibold my-6">
+            Set Message For User
+          </h1>
+          <form onSubmit={handleSubmit}>
+            <div>
+              <div className="flex flex-col gap-6">
+                {/* First Row for Title and DatePicker */}
+                <div className="flex w-full flex-col md:flex-row gap-3 md:gap-6">
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Title"
+                      name="title"
+                      className="w-full md:w-[24rem] p-2 rounded-md border border-gray-300 focus:outline-none focus:ring focus:ring-blue-200 shadow-md"
+                    />
+                  </div>
+                  <div className="w-[100%] md:w-[24rem] p-2 rounded-md border bg-white border-gray-300 focus:outline-none focus:ring focus:ring-blue-200 shadow-md">
+                    <DatePicker
+                      selected={fromDate}
+                      onChange={handleFromDateChange}
+                      dateFormat="yyyy-MM-dd"
+                      className="focus:hidden"
+                    />
+                  </div>
+                </div>
+
+                {/* Second Row for Message and User */}
+                <div className="flex flex-col gap-4 md:gap-8 -mt-2 md:mt-2">
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Enter Message"
+                      name="message" // Set the name attribute to "message"
+                      className="w-full md:w-[49.5rem] p-2 rounded-md border border-gray-300 focus:outline-none focus:ring focus:ring-blue-200 shadow-md"
+                    />
+
+                  </div>
+                  <div>
+                    {/* <input
+                      type="text"
+                      placeholder="User"
+                      className="w-full md:w-[49.5rem] p-2 rounded-md border border-gray-300 focus:outline-none focus:ring focus:ring-blue-200 shadow-md"
+                    /> */}
+                    <select
+                      onChange={(e) => setAction(e.target.value)}
+                      name="type" // Set the name attribute to "type"
+                      id="games_listing"
+                      className="md:w-[49.5rem] p-2 rounded border bg-white"
+                      required
+                    >
+                      <option value="selectAction">Please Select Type</option>
+                      <option value="all">All</option>
+                      <option value="user">User</option>
+                      <option value="downline">Downline</option>
+                    </select>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center md:justify-start">
+              <button
+                type="submit"
+                className="inline-flex mt-6 items-center mb-2 bg-color-secondary hover:bg-yellow-300 font-semibold px-4 p-2 rounded text-semibold"
+              >
+                <span>Save Message</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div className="mt-16">
+        <div>
+          <div className="w-full flex flex-col md:flex-row gap-3 items-center">
+            <h1 className="md:text-[20px] text-bold">
+              <span className="font-bold pl-2 md:pl-6">Message List:</span>
+              <select
+                onChange={handleDownlineOptions}
+                name="games_listing"
+                id="games_listing"
+                className="w-[300px] p-2 rounded mx-2 border bg-white"
+              >
+                <option value="selectAction">Select Action</option>
+                <option value="all">All</option>
+                <option value="user">User</option>
+                <option value="downline">Downline</option>
+              </select>
+            </h1>
+            <div>
+              <button onClick={actionMessage}
+                type="submit"
+                className="inline-flex items-center bg-color-secondary hover:bg-yellow-300 font-semibold px-4 p-2 rounded text-semibold"
+              >
+                <span>Action</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-48 overflow-x-auto">
+        <ResponsiveTable
+          data={adjustedMsgList}
+          columns={columnData}
+          showFilter={false}
+          tablePage={1}
+          totalPages={1}
+        />
+      </div>
+      <ModalMessage
+        isOpen={isMasterModalOpen}
+        refetch={refetch}
+        onClose={() => setIsMasterModalOpen(false)}
+        handleInplayClick={handleInplayClick}
+        handleDeleteSubmit={handleDeleteSubmit}
+        isShowoing={isShowoing}
+        isdelete={isdelete}
+        viewModal={viewModal}
+        handleViewSubmit={handleViewSubmit}
+        handleShowSubmit={handleShowSubmit}
+        handleHideSubmit={handleHideSubmit}
+        showMessage={showMessage}
+        hideMessage={hideMessage}
+        isEdit={isEdit}
+        userMessage={userMessage}
+        userTitle={userTitle}
+        handleMessages={handleMessages}
+        setUpdatedMessage={setUpdatedMessage}
+        setUpdatedTitle={setUpdatedTitle}
+      />
+
+
+    </div>
+  );
+};
+
+export default MessageSetting;
+
+
+
+
+/* eslint-disable no-mixed-spaces-and-tabs */
+import { adminApi } from "../api.config/api.config";
+import {
+  ACTIVE_LOG,
+  ADD_USERS,
+  BANKING,
+  DOWNLINE_PROFIT_LOSS,
+  EVENT_PROFIT_LOSS,
+  GET_ACTIVE_MATCH,
+  GET_TOP_PLAYER,
+  HISTORY,
+  MASTERDWONLINELIST,
+  MY_REPORT,
+  PASSWORD_HISTORY,
+  RESTORE_USER,
+  UPDATE_USER,
+  USER,
+  USERDWONLINELIST,
+  USERS,
+  BETLIST,
+	USERSDOWNLINE,
+  GET_MESSAGES,
+  SEND_MESSAGES,
+  UPDATE_USER_MESSAGES,
+  DELETE_USER_MESSAGES
+} from "../endpoint/endpoint";
+import { PLAYER_PL_REPORT } from "../endpoint/myReportEndpoint";
+
+const extendedApi = adminApi.injectEndpoints({
+  endpoints: (builder) => ({
+    getUser: builder.query({
+      // query: (user) => `${USERS}/${user.id}`,
+      query: () => USER,
+    }),
+    addUser: builder.mutation({
+      query: (user) => ({
+        url: ADD_USERS,
+        method: "POST",
+        body: user,
+      }),
+    }),
+    updateUserById: builder.mutation({
+      query: (user) => ({
+        url: `${USERS}/${user.id}`,
+        method: "PATCH",
+        body: user,
+      }),
+    }),
+    updateUser: builder.mutation({
+      query: (user) => ({
+        url: `${UPDATE_USER}`,
+        method: "PATCH",
+        body: user,
+      }),
+    }),
+    deleteUser: builder.mutation({
+      query: ({ id }) => ({
+        url: `${USERS}/${id}`,
+        method: "DELETE",
+        body: id,
+      }),
+    }),
+    getUserDownlineList: builder.query({
+      query: () => USERDWONLINELIST,
+    }),
+    getMasterDownlineList: builder.query({
+      query: () => MASTERDWONLINELIST,
+    }),
+    getMyReport: builder.query({
+      query: () => MY_REPORT,
+    }),
+    getPasswordHistory: builder.query({
+      query: () => PASSWORD_HISTORY,
+    }),
+    getHistroy: builder.query({
+      query: () => HISTORY,
+    }),
+    getUserBanking: builder.query({
+      query: () => BANKING,
+    }),
+    getMasterBanking: builder.query({
+      query: () => BANKING,
+    }),
+    getEventProfitLoss: builder.query({
+      query: ({ userId, fromDate, toDate, gameType, betType }) =>
+        `${EVENT_PROFIT_LOSS}/${userId || ""}?from=${fromDate}&to=${
+          toDate || ""
+        }&gameType=${gameType || ""}&betType=${betType || ""}`,
+    }),
+    getDownlineProfitLoss: builder.query({
+      query: ({ userId, fromDate, toDate, userName, gameType }) =>
+        `${DOWNLINE_PROFIT_LOSS}/${userId || ""}?from=${fromDate || ""}&to=${
+          toDate || ""
+        }&userName=${userName || ""}&gameType=${gameType || ""}`,
+    }),
+    getPlayerProfitLoss: builder.query({
+      query: ({ userId, userName, fromDate, toDate }) =>
+        `${PLAYER_PL_REPORT}/${userId || ""}?from=${fromDate || ""}&to=${
+          toDate || ""
+        }&username=${userName || ""}`,
+    }),
+    // getPasswordHistory: builder.query({
+    // 	query: () => PASSWORD_HISTORY,
+    // }),
+    getRestoreUser: builder.query({
+      query: () => RESTORE_USER,
+    }),
+    getActiveLog: builder.query({
+      query: ({ userId, limit, page }) =>
+        `${ACTIVE_LOG}/${userId}?page=${page || 1}&limit=${limit || 10}`,
+    }),
+
+
+    getTopPlayer: builder.query({
+      query: () => GET_TOP_PLAYER,
+    }),
+    getActiveMatch: builder.query({
+      query: (sport) => `${GET_ACTIVE_MATCH}?sport=${sport||"cricket"}`,
+    }),
+		getBetlist:builder.query({			
+			query: ({ queryParams }) => {
+				const { page, limit, username, gameType, betId, stackId, sortBy,statusInsertTime, sortOder, status, fromDate, toDate, toDay, yesterDay  } = queryParams;
+				const queryString = `${BETLIST}?page=${page}&limit=${limit}`+(username ?`&username=${username}` : '')+(status ? `&status=${status}` : '')+(gameType !== 'All' ? `&gameType=${gameType}` : '')+(betId ? `&search=${betId}` : '')+(stackId ? `&stake=${stackId}` : '')+(fromDate ? `&from=${fromDate}` : '')+(toDate ? `&to=${toDate}` : '')+(toDay && yesterDay ? `&to=${toDay}&from=${yesterDay}` : '')+(`&sortBy=${sortBy}`)+(sortOder ?`&sortingOrder=${sortOder}` : '');
+				return queryString;
+
+			  }
+		}),
+		getUsersDown:builder.query({
+			query: () =>`${USERSDOWNLINE}?accountType=user`,
+		}),
+    getMessagesDownline:builder.query({
+      query: ({ userId, filter, isShowings }) => `${GET_MESSAGES}/${userId}?filter=${filter}&isShowing=${isShowings}`,
+      providesTags: ['Messages'],
+    }),
+    sendMessage:builder.mutation({
+      query:(addMessage) =>({
+        url:SEND_MESSAGES,
+        method:"POST",
+        body: addMessage,
+      }),
+      invalidatesTags: ['Messages']
+    }),
+
+    updateUserMessage: builder.mutation({
+      query: (user) => ({
+        url: `${UPDATE_USER_MESSAGES}/${user.id}`,
+        method: "PATCH",
+        body: user,
+      }),
+      invalidatesTags: ['Messages']
+    }),
+    deleteUserMessage: builder.mutation({
+      query: (id) => ({
+        url: `${DELETE_USER_MESSAGES}/${id}`,
+        method: "DELETE",
+        body: id,
+      }),
+      invalidatesTags: ['Messages']
+    }),
+    
+  }),
+});
+
+export const {
+  useGetUserQuery,
+  useAddUserMutation,
+  useUpdateUserByIdMutation,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
+  useGetUserDownlineListQuery,
+  useGetMasterDownlineListQuery,
+  useGetPlayerProfitLossQuery,
+  useGetEventProfitLossQuery,
+  useGetMyReportQuery,
+  useGetDownlineProfitLossQuery,
+  useGetPasswordHistoryQuery,
+  useGetUserBankingQuery,
+  useGetRestoreUserQuery,
+  useGetMasterBankingQuery,
+  useGetActiveLogQuery,
+//useGetLiveBetlistQuery,
+  useGetTopPlayerQuery,
+  useGetActiveMatchQuery,
+  // useGetLiveBetlistQuery,
+	useGetBetlistQuery,
+	useGetUsersDownQuery,
+  useGetMessagesDownlineQuery,
+  useSendMessageMutation,
+  useUpdateUserMessageMutation,
+  useDeleteUserMessageMutation
+} = extendedApi;
+
+
+// auth endpoint
+export const LOGIN = "/users/login";
+export const GET_LOGGED_USER = "/users/get-user";
+export const CHANGE_PASSWORD = "/users/change-password";
+
+// downline endpoints
+export const GET_USER_BY_ID = "/users/get-user";
+export const GET_USER_BY_PARENT = "/users/get-user-by-parent";
+export const DELETE_USER = "/users/delete-user";
+export const UPDATE_USER_FIELDS = "/users/update-user-field";
+export const UPDATE_CREDIT_REF = "/users/update-credit-ref";
+export const UPDATE_USER_STATUS = "/users/update-status";
+export const ADD_USERS = "/users/add-user";
+export const DOWNLINE_CHANGE_PASSWORD = "/users/change-password-downline";
+export const MASTERS = "/masters";
+export const GET_USER_BY_SEARCH_USER = "users/search-user"
+// user endpoints
+export const UPDATE_USER = "/users/update-user";
+
+// banking endpoints
+export const GET_BANKING = "/transection/get-bankings";
+export const POST_BANKING = "/transection/add-transaction";
+export const GET_LOGS = "/transection/transactionlogs/";
+
+// block market endpoint
+export const GET_SPORTS_LIST = "/market/get-sports-list";
+export const UPDATE_SPORTS_LIST_STATUS = "/market/update-sports-list-status";
+export const GET_GAMES_LIST = "/market/get-game-list";
+export const UPDATE_GAMES_LIST_FIELD = "/market/update-game-list-field";
+export const GET_CASINO_LIST = "/market/get-casino-list";
+export const UPDATE_CASINO_LIST_STATUS = "/market/update-casino-list-status";
+
+export const USERS = "/users";
+export const USER = "/users";
+export const USERDWONLINELIST = "/test";
+export const MASTERDWONLINELIST = "/test";
+export const PASSWORD_HISTORY = "/test";
+export const MY_REPORT = "/test";
+export const EVENT_PROFIT_LOSS = "/reports/get-Event-pl-report";
+export const DOWNLINE_PROFIT_LOSS = "/reports/get-downline-pl-report";
+export const HISTORY = "/test";
+export const BANKING = "/test";
+export const RESTORE_USER = "/test";
+
+// export const ACTIVE_LOG = '/users/activity-logs'
+
+
+// risk management endpoints
+export const GET_TOP_PLAYER= "users/get-top-players"
+
+
+export const GET_ACTIVE_MATCH="sports/get-all-sports"
+
+export const ACTIVE_LOG = '/users/activity-logs';
+
+
+// bet list endpoint
+export const BETLIST = "/bets/get-bet-list";
+
+
+// user downline endpoint
+
+export const USERSDOWNLINE = "/users/get-downline-users";
+
+//default settings
+
+export const UPDATE_SETTING = "/users/update-setting-limits";
+
+
+// get messages downline
+export const GET_MESSAGES = "/users/get-message-list";
+
+
+// sent message downline 
+export const SEND_MESSAGES = "/users/send-message"
+
+// update user message 
+export const UPDATE_USER_MESSAGES = "/users/update-message"
+// delete user message 
+export const DELETE_USER_MESSAGES = "users/delete-message"
+
